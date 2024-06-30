@@ -1,16 +1,41 @@
 package com.sharebook.demo.user;
 
-public class User {
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.validation.constraints.Size;
+
+
+@Entity
+public class UserSchema {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
+
+    @Size(min = 2, max = 25, message = ("Vorname muss zwischen 2 und 25 Zeichen lang sein."))
     private String firstName;
+    @Size(min = 2, max = 25, message = ("Nachname muss zwischen 2 und 25 Zeichen lang sein."))
     private String lastName;
     private String email;
     private String password;
 
-    public User(String firstName, String lastName, String email, String password) {
-        this.firstName = firstName;
-        this.lastName = lastName;
+    public UserSchema() {
+    }
+
+    public UserSchema(String email) {
+
         this.email = email;
-        this.password = password;
+
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getFirstName() {
