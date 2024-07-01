@@ -21,15 +21,15 @@ public class UserController {
     public ResponseEntity addUser(@Valid @RequestBody UserSchema userSchema) {
 
         // exist user?
-        List<UserSchema> userSchemas = userRepository.findByEmail(userSchema.getEmail());
+        UserSchema user = userRepository.findOneByEmail(userSchema.getEmail());
 
-        if (!userSchemas.isEmpty()) {
+        if (user!= null) {
             return new ResponseEntity("User already exists", HttpStatus.BAD_REQUEST);
         }
 
-        userRepository.save(userSchema);
+        UserSchema userSaved = userRepository.save(user);
 
-        return new ResponseEntity(userSchema, HttpStatus.CREATED);
+        return new ResponseEntity(userSaved, HttpStatus.CREATED);
 
     }
 
