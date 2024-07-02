@@ -4,17 +4,21 @@ import com.sharebook.demo.Borrows.BorrowSchema;
 import com.sharebook.demo.Borrows.BorrowRepository;
 import com.sharebook.demo.user.UserSchema;
 import com.sharebook.demo.user.UserRepository;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
+@SecurityRequirement(name = "bearerAuth")
 public class BookController {
     //we connect BookController to the database(Bookrepository) and get all the books
 
@@ -31,29 +35,35 @@ public class BookController {
     private BorrowRepository borrowRepository;
 
     @GetMapping("/books")
-    public ResponseEntity listBooks(@RequestParam(required = false) BookStatus status) {
-        Integer userConnectedId =  this.getUserConnectedId();//  the user connected is the user who is connected to the application
+    public ResponseEntity listBooks(@RequestParam(required = false) BookStatus status, Principal principal) {
+        Integer userConnectedId =  this.getUserConnectedId(principal);//  the user connected is the user who is connected to the application
         List<BookSchema> books;
 
-         if(status != null && status == BookStatus.FREE) {
-             //free books
+        if(status != null && status == BookStatus.FREE) {
+            //free books
             books = bookRepository.findByStatusAndUserIdNotAndDeletedFalse(status, userConnectedId);
-         }else {
-             //My Books
-             books = bookRepository.findByUserIdAndDeletedFalse(userConnectedId);
-         }
-          return new ResponseEntity(books, HttpStatus.OK);
+        }else {
+            //My Books
+            books = bookRepository.findByUserIdAndDeletedFalse(userConnectedId);
+        }
+        return new ResponseEntity(books, HttpStatus.OK);
     }
 
-    public static Integer getUserConnectedId() {
-        return 1;
+    public  Integer getUserConnectedId(Principal principal){
+        if (!(principal instanceof UsernamePasswordAuthenticationToken)) {
+            throw new RuntimeException(("User not found"));
+        }
+        UsernamePasswordAuthenticationToken token = (UsernamePasswordAuthenticationToken) principal;
+        UserSchema oneByEmail = userRepository.findOneByEmail(token.getName());
+
+        return oneByEmail.getId();
     }// this method is used to simulate the user is connected in to the application
 
 
     @PostMapping("/books")
-    public ResponseEntity addBook(@RequestBody @Valid BookSchema book){
+    public ResponseEntity addBook(@RequestBody @Valid BookSchema book, Principal principal){
         // add a book
-        Integer userConnectedId =  this.getUserConnectedId();// the user connected is the user who is connected to the application
+        Integer userConnectedId =  this.getUserConnectedId(principal);// the user connected is the user who is connected to the application
         Optional<UserSchema> userToAdd = userRepository.findById(userConnectedId);
         Optional<Category> categoryToAdd = categoryRepository.findById(book.getCategoryId());
         if(categoryToAdd.isPresent()){
@@ -102,27 +112,27 @@ public class BookController {
         }
         BookSchema bookSchemaToSave = bookToUpdate.get();// this method is used to get the book from the database
         Optional<Category> newCategory = categoryRepository.findById(book.getCategoryId());
-            bookSchemaToSave.setCategory(newCategory.get());
-            bookSchemaToSave.setTitle(book.getTitle());
-            bookRepository.save(bookSchemaToSave);// this method is used to save the book in the database
-            return new ResponseEntity(bookSchemaToSave, HttpStatus.OK);
-        }
+        bookSchemaToSave.setCategory(newCategory.get());
+        bookSchemaToSave.setTitle(book.getTitle());
+        bookRepository.save(bookSchemaToSave);// this method is used to save the book in the database
+        return new ResponseEntity(bookSchemaToSave, HttpStatus.OK);
+    }
 
-        @GetMapping("/categories")
-        public ResponseEntity listCategories() {
-             //list all  categories
-            // this method is used to get all the categories
-            return new ResponseEntity(categoryRepository.findAll(), HttpStatus.OK);
-        }
+    @GetMapping("/categories")
+    public ResponseEntity listCategories() {
+        //list all  categories
+        // this method is used to get all the categories
+        return new ResponseEntity(categoryRepository.findAll(), HttpStatus.OK);
+    }
 
-        // this method is used to load ein book
-        @GetMapping("/books/{bookId}")//bookId is the id of the book,corresponding to the book that we want to load
-        public ResponseEntity loadingBook(@PathVariable("bookId") String bookId) {
-          Optional<BookSchema> book = bookRepository.findById(Integer.valueOf(bookId));
-            if(!book.isPresent()){
-                return new ResponseEntity("Book not found",HttpStatus.BAD_REQUEST);
-            }
-            return new ResponseEntity(book.get(),HttpStatus.OK);
+    // this method is used to load ein book
+    @GetMapping("/books/{bookId}")//bookId is the id of the book,corresponding to the book that we want to load
+    public ResponseEntity loadingBook(@PathVariable("bookId") String bookId) {
+        Optional<BookSchema> book = bookRepository.findById(Integer.valueOf(bookId));
+        if(!book.isPresent()){
+            return new ResponseEntity("Book not found",HttpStatus.BAD_REQUEST);
+        }
+        return new ResponseEntity(book.get(),HttpStatus.OK);
 
 
     }

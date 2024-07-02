@@ -6,41 +6,47 @@ import com.sharebook.demo.book.BookRepository;
 import com.sharebook.demo.book.BookStatus;
 import com.sharebook.demo.user.UserSchema;
 import com.sharebook.demo.user.UserRepository;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 @RestController
+@SecurityRequirement(name = "bearerAuth")
 public class BorrowController {
 
     @Autowired
-    private BorrowRepository borrowRepository;
+    BorrowRepository borrowRepository;
 
     @Autowired
-    private BookRepository bookRepository;
+    BookRepository bookRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    UserRepository userRepository;
+
+    @Autowired
+    BookController bookController;
 
 
 
 
     @GetMapping("/borrows")
-    public ResponseEntity myBorrowsList(){
+    public ResponseEntity myBorrowsList(Principal principal){
         // list all borrows
-     List<BorrowSchema> borrowSchemas = borrowRepository.findByBorrowerId(BookController.getUserConnectedId());
+        List<BorrowSchema> borrowSchemas = borrowRepository.findByBorrowerId(bookController.getUserConnectedId(principal));
         return new ResponseEntity(borrowSchemas, HttpStatus.OK);
     }
 
     @PostMapping("/borrows/{bookId}")
-    public ResponseEntity createBorrow(@PathVariable("bookId")String bookId){
+    public ResponseEntity createBorrow(@PathVariable("bookId")String bookId, Principal principal){
         //add a borrow
-        Integer userConnectedId = BookController.getUserConnectedId();//user musst connected
+        Integer userConnectedId = bookController.getUserConnectedId(principal);//user musst connected
         Optional<UserSchema> borrower = userRepository.findById(userConnectedId);//get the user connected
         Optional<BookSchema> book = bookRepository.findById(Integer.valueOf(bookId));
 
@@ -75,11 +81,11 @@ public class BorrowController {
 
 
         //change the status of the book(mettre a jour le status du livre)
-          BookSchema bookSchema = borrowSchemaEntity.getBookSchema();
-          bookSchema.setStatus(BookStatus.FREE);
-          bookRepository.save(bookSchema);
+        BookSchema bookSchema = borrowSchemaEntity.getBookSchema();
+        bookSchema.setStatus(BookStatus.FREE);
+        bookRepository.save(bookSchema);
 
-            return new ResponseEntity(HttpStatus.NOT_FOUND);
+        return new ResponseEntity(HttpStatus.NOT_FOUND);
 
     }
 }

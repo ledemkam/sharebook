@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
-
+import static com.sharebook.demo.jwt.JwtFilter.AUTHORIZATION_HEADER;
 
 
 @RestController
@@ -30,7 +30,7 @@ public class JwtController {
        Authentication authentication = logUser(jwtRequest.getEmail(), jwtRequest.getPassword());
        String jwt = jwtUtils.generateToken(authentication);
        HttpHeaders httpHeaders = new HttpHeaders();
-       httpHeaders.add("Authorization", "Bearer " + jwt);
+       httpHeaders.add(AUTHORIZATION_HEADER , "Bearer " + jwt);
        Object principal = authentication.getPrincipal();
        return new ResponseEntity<>(new JwtResponse(((User) principal).getUsername()), httpHeaders, HttpStatus.OK);
    }
